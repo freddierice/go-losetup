@@ -1,6 +1,16 @@
 package losetup
 
 const (
+	// general constants
+	NameSize = 64
+	KeySize  = 32
+
+	// loop flags
+	FlagsReadOnly  = 1
+	FlagsAutoClear = 4
+	FlagsPartScan  = 8
+	FlagsDirectIO  = 16
+
 	// loop filter types
 	CryptNone      = 0
 	CryptXor       = 1
