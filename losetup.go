@@ -14,7 +14,7 @@ func (device Device) Add() error {
 		return fmt.Errorf("could not open %v: %v", LoopControlPath, err)
 	}
 	defer ctrl.Close()
-	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlAdd, uintptr(device))
+	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlAdd, uintptr(device.number))
 	if errno == unix.EEXIST {
 		return fmt.Errorf("device already exits")
 	}
@@ -31,7 +31,7 @@ func (device Device) Remove() error {
 		return fmt.Errorf("could not open %v: %v", LoopControlPath, err)
 	}
 	defer ctrl.Close()
-	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlRemove, uintptr(device))
+	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlRemove, uintptr(device.number))
 	if errno == unix.EBUSY {
 		return fmt.Errorf("could not remove, device in use")
 	}
@@ -47,40 +47,41 @@ func (device Device) Remove() error {
 func GetFree() (Device, error) {
 	ctrl, err := os.OpenFile(LoopControlPath, os.O_RDWR, 0660)
 	if err != nil {
-		return 0, fmt.Errorf("could not open %v: %v", LoopControlPath, err)
+		return Device{}, fmt.Errorf("could not open %v: %v", LoopControlPath, err)
 	}
 	defer ctrl.Close()
 	dev, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlGetFree, 0)
 	if dev < 0 {
-		return 0, fmt.Errorf("could not get free device (err: %d): %v", errno, errno)
+		return Device{}, fmt.Errorf("could not get free device (err: %d): %v", errno, errno)
 	}
-	return Device(dev), nil
+	return Device{number: uint64(dev), flags: os.O_RDWR}, nil
 }
 
 // Attach attaches backingFile to the loopback device starting at offset. If ro
 // is true, then the file is attached read only.
 func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
-	var flags int
+	var dev Device
+
+	flags := os.O_RDWR
 	if ro {
 		flags = os.O_RDONLY
-	} else {
-		flags = os.O_RDWR
 	}
 
 	back, err := os.OpenFile(backingFile, flags, 0660)
 	if err != nil {
-		return 0, fmt.Errorf("could not open backing file: %v", err)
+		return dev, fmt.Errorf("could not open backing file: %v", err)
 	}
 	defer back.Close()
 
-	dev, err := GetFree()
+	dev, err = GetFree()
 	if err != nil {
-		return 0, err
+		return dev, err
 	}
+	dev.flags = flags
 
-	loopFile, err := os.OpenFile(dev.Path(), flags, 0660)
+	loopFile, err := dev.open()
 	if err != nil {
-		return 0, fmt.Errorf("could not open loop device")
+		return dev, fmt.Errorf("could not open loop device: %v", err)
 	}
 	defer loopFile.Close()
 
@@ -91,7 +92,7 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 		info.Offset = offset
 		if err := setInfo(loopFile.Fd(), info); err != nil {
 			unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
-			return 0, fmt.Errorf("could not set info")
+			return dev, fmt.Errorf("could not set info")
 		}
 	}
 
