@@ -4,6 +4,10 @@ const (
 	// general constants
 	NameSize = 64
 	KeySize  = 32
+	Major    = 7
+
+	// paths
+	LoopControlPath = "/dev/loop-control"
 
 	// loop flags
 	FlagsReadOnly  = 1
@@ -25,13 +29,13 @@ const (
 	MaxCrypt       = 20
 
 	// ioctl commands
-	SetFD       = 0x4C00
-	ClrFD       = 0x4C01
+	SetFd       = 0x4C00
+	ClrFd       = 0x4C01
 	SetStatus   = 0x4C02
 	GetStatus   = 0x4C03
 	SetStatus64 = 0x4C04
 	GetStatus64 = 0x4C05
-	ChangeFD    = 0x4C06
+	ChangeFd    = 0x4C06
 	SetCapacity = 0x4C07
 	SetDirectIO = 0x4C08
 
