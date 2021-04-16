@@ -94,9 +94,10 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 			unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
 			return dev, fmt.Errorf("could not set info")
 		}
+		return dev, nil
+	} else {
+		return dev, errno
 	}
-
-	return dev, nil
 }
 
 // Detach removes the file backing the device.
