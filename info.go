@@ -29,7 +29,7 @@ type Info struct {
 func (device Device) GetInfo() (Info, error) {
 	f, err := device.open()
 	if err != nil {
-		return Info{}, fmt.Errorf("could not open %v: %v", device, err)
+		return Info{}, fmt.Errorf("could not open %v: %w", device, err)
 	}
 	defer f.Close()
 
@@ -40,9 +40,9 @@ func getInfo(fd uintptr) (Info, error) {
 	retInfo := Info{}
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, fd, GetStatus64, uintptr(unsafe.Pointer(&retInfo)))
 	if errno == unix.ENXIO {
-		return Info{}, fmt.Errorf("device not backed by a file")
+		return Info{}, fmt.Errorf("device not backed by a file: %w", errno)
 	} else if errno != 0 {
-		return Info{}, fmt.Errorf("could not get info about %v (err: %d): %v", errno, errno)
+		return Info{}, fmt.Errorf("could not get info (errno: %d): %w", errno, errno)
 	}
 
 	return retInfo, nil
@@ -52,7 +52,7 @@ func getInfo(fd uintptr) (Info, error) {
 func (device Device) SetInfo(info Info) error {
 	f, err := device.open()
 	if err != nil {
-		return fmt.Errorf("could not open %v: %v", device, err)
+		return fmt.Errorf("could not open %v: %w", device, err)
 	}
 	defer f.Close()
 
@@ -62,9 +62,9 @@ func (device Device) SetInfo(info Info) error {
 func setInfo(fd uintptr, info Info) error {
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, fd, SetStatus64, uintptr(unsafe.Pointer(&info)))
 	if errno == unix.ENXIO {
-		return fmt.Errorf("device not backed by a file")
+		return fmt.Errorf("device not backed by a file: %w", errno)
 	} else if errno != 0 {
-		return fmt.Errorf("could not get info about %v (err: %d): %v", errno, errno)
+		return fmt.Errorf("could not set info (errno: %d): %w", errno, errno)
 	}
 
 	return nil

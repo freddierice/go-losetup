@@ -11,15 +11,15 @@ import (
 func (device Device) Add() error {
 	ctrl, err := os.OpenFile(LoopControlPath, os.O_RDWR, 0660)
 	if err != nil {
-		return fmt.Errorf("could not open %v: %v", LoopControlPath, err)
+		return fmt.Errorf("could not open %v: %w", LoopControlPath, err)
 	}
 	defer ctrl.Close()
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlAdd, uintptr(device.number))
 	if errno == unix.EEXIST {
-		return fmt.Errorf("device already exits")
+		return fmt.Errorf("device already exits: %w", errno)
 	}
 	if errno != 0 {
-		return fmt.Errorf("could not add device (err: %d): %v", errno, errno)
+		return fmt.Errorf("could not add device (err: %d): %w", errno, errno)
 	}
 	return nil
 }
@@ -28,15 +28,15 @@ func (device Device) Add() error {
 func (device Device) Remove() error {
 	ctrl, err := os.OpenFile(LoopControlPath, os.O_RDWR, 0660)
 	if err != nil {
-		return fmt.Errorf("could not open %v: %v", LoopControlPath, err)
+		return fmt.Errorf("could not open %v: %w", LoopControlPath, err)
 	}
 	defer ctrl.Close()
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlRemove, uintptr(device.number))
 	if errno == unix.EBUSY {
-		return fmt.Errorf("could not remove, device in use")
+		return fmt.Errorf("could not remove, device in use: %w", errno)
 	}
 	if errno != 0 {
-		return fmt.Errorf("could not remove (err: %d): %v", errno, errno)
+		return fmt.Errorf("could not remove (err: %d): %w", errno, errno)
 	}
 	return nil
 }
@@ -47,12 +47,12 @@ func (device Device) Remove() error {
 func GetFree() (Device, error) {
 	ctrl, err := os.OpenFile(LoopControlPath, os.O_RDWR, 0660)
 	if err != nil {
-		return Device{}, fmt.Errorf("could not open %v: %v", LoopControlPath, err)
+		return Device{}, fmt.Errorf("could not open %v: %w", LoopControlPath, err)
 	}
 	defer ctrl.Close()
 	dev, _, errno := unix.Syscall(unix.SYS_IOCTL, ctrl.Fd(), CtlGetFree, 0)
 	if dev < 0 {
-		return Device{}, fmt.Errorf("could not get free device (err: %d): %v", errno, errno)
+		return Device{}, fmt.Errorf("could not get free device (err: %d): %w", errno, errno)
 	}
 	return Device{number: uint64(dev), flags: os.O_RDWR}, nil
 }
@@ -69,7 +69,7 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 
 	back, err := os.OpenFile(backingFile, flags, 0660)
 	if err != nil {
-		return dev, fmt.Errorf("could not open backing file: %v", err)
+		return dev, fmt.Errorf("could not open backing file: %w", err)
 	}
 	defer back.Close()
 
@@ -81,7 +81,7 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 
 	loopFile, err := dev.open()
 	if err != nil {
-		return dev, fmt.Errorf("could not open loop device: %v", err)
+		return dev, fmt.Errorf("could not open loop device: %w", err)
 	}
 	defer loopFile.Close()
 
@@ -92,7 +92,7 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 		info.Offset = offset
 		if err := setInfo(loopFile.Fd(), info); err != nil {
 			unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
-			return dev, fmt.Errorf("could not set info")
+			return dev, fmt.Errorf("could not set info: %w", err)
 		}
 		return dev, nil
 	} else {
@@ -105,13 +105,13 @@ func (device Device) Detach() error {
 
 	loopFile, err := os.OpenFile(device.Path(), os.O_RDONLY, 0660)
 	if err != nil {
-		return fmt.Errorf("could not open loop device")
+		return fmt.Errorf("could not open loop device: %w", err)
 	}
 	defer loopFile.Close()
 
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
 	if errno != 0 {
-		return fmt.Errorf("error clearing loopfile: %v", errno)
+		return fmt.Errorf("error clearing loopfile: %w", errno)
 	}
 
 	return nil
