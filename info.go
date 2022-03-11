@@ -42,7 +42,7 @@ func getInfo(fd uintptr) (Info, error) {
 	if errno == unix.ENXIO {
 		return Info{}, fmt.Errorf("device not backed by a file")
 	} else if errno != 0 {
-		return Info{}, fmt.Errorf("could not get info about %v (err: %d): %v", errno, errno)
+		return Info{}, fmt.Errorf("could not get info about %v (err: %d): %v", fd, errno, errno)
 	}
 
 	return retInfo, nil
@@ -64,7 +64,7 @@ func setInfo(fd uintptr, info Info) error {
 	if errno == unix.ENXIO {
 		return fmt.Errorf("device not backed by a file")
 	} else if errno != 0 {
-		return fmt.Errorf("could not get info about %v (err: %d): %v", errno, errno)
+		return fmt.Errorf("could not get info about %v (err: %d): %v", fd, errno, errno)
 	}
 
 	return nil
