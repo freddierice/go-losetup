@@ -14,6 +14,12 @@ type Device struct {
 	flags int
 }
 
+// New creates a reference to a specific loop device, if you know which one you
+// want to reference.
+func New(number uint64, flags int) Device {
+	return Device{number, flags}
+}
+
 // open returns a file handle to /dev/loop# and returns an error if it cannot
 // be opened.
 func (device Device) open() (*os.File, error) {
