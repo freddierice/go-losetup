@@ -3,7 +3,7 @@ A losetup implementation for go-lang
 
 ## how to get it
 ```
-go get gopkg.in/freddierice/go-losetup.v1
+go get github.com/freddierice/go-losetup
 ```
 
 ## example usage
