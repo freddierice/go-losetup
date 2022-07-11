@@ -1,4 +1,4 @@
-module github.com/freddierice/go-losetup
+module github.com/freddierice/go-losetup/v2
 
 go 1.17
 
