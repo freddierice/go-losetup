@@ -1,5 +1,5 @@
 # go-losetup
-A losetup implementation for go-lang
+A losetup implementation for go-lang.
 
 ## how to get it
 ```
