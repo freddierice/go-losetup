@@ -90,6 +90,7 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 		info := Info{}
 		copy(info.FileName[:], []byte(backingFile))
 		info.Offset = offset
+		info.Flags = FlagsPartScan
 		if err := setInfo(loopFile.Fd(), info); err != nil {
 			unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
 			return dev, fmt.Errorf("could not set info")
