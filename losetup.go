@@ -1,6 +1,7 @@
 package losetup
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -60,7 +61,21 @@ func GetFree() (Device, error) {
 // Attach attaches backingFile to the loopback device starting at offset. If ro
 // is true, then the file is attached read only.
 func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
+	return attachBackingFile(backingFile, &Info{Offset: offset}, ro)
+}
+
+// AttachWithInfo attaches backingFile to the loopback device with Info. If ro
+// is true, then the file is attached read only.
+func AttachWithInfo(backingFile string, info *Info, ro bool) (Device, error) {
+	return attachBackingFile(backingFile, info, ro)
+}
+
+func attachBackingFile(backingFile string, info *Info, ro bool) (Device, error) {
 	var dev Device
+
+	if info == nil {
+		return dev, errors.New("no info passed")
+	}
 
 	flags := os.O_RDWR
 	if ro {
@@ -86,18 +101,17 @@ func Attach(backingFile string, offset uint64, ro bool) (Device, error) {
 	defer loopFile.Close()
 
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), SetFd, back.Fd())
-	if errno == 0 {
-		info := Info{}
-		copy(info.FileName[:], []byte(backingFile))
-		info.Offset = offset
-		if err := setInfo(loopFile.Fd(), info); err != nil {
-			unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
-			return dev, fmt.Errorf("could not set info")
-		}
-		return dev, nil
-	} else {
+	if errno != 0 {
 		return dev, errno
 	}
+
+	copy(info.FileName[:], []byte(backingFile))
+	if err := setInfo(loopFile.Fd(), *info); err != nil {
+		unix.Syscall(unix.SYS_IOCTL, loopFile.Fd(), ClrFd, 0)
+		return dev, fmt.Errorf("could not set info: %v", err)
+	}
+
+	return dev, nil
 }
 
 // Detach removes the file backing the device.
